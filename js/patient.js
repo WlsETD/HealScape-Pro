@@ -6,6 +6,7 @@
     targetReps: 3,
     arm: { angle: 0, reps: 0, status: 'down', max: 0 },
     grip: { score: 0, reps: 0, status: 'open', max: 0 },
+    reaction: { targets: [], score: 0, startTime: 0, totalTime: 0 },
     lastSession: { xp: 0, rom: 0, reps: 0 },
     ai: { loading: false, camera: false },
     currentView: 'home',
@@ -34,7 +35,6 @@
     state.stats.nextLevelXp = state.stats.level * 500;
     generateMathQuiz();
     render();
-    attachEvents();
   }
 
   function generateMathQuiz() {
@@ -210,10 +210,10 @@
           </div>
         </button>
 
-        <button class="w-full bg-white p-6 rounded-[32px] border border-slate-100 flex justify-between items-center group active:scale-95 transition-all shadow-sm opacity-60">
+        <button data-act="start-reaction" class="w-full bg-white p-6 rounded-[32px] border border-slate-100 flex justify-between items-center group active:scale-95 transition-all shadow-sm">
           <div class="text-left">
             <div class="font-black text-slate-800 text-lg">眼手協調反應</div>
-            <div class="text-xs text-slate-400 mt-0.5">捕捉 5 個移動目標</div>
+            <div class="text-xs text-slate-400 mt-0.5">目標：捕捉 10 個移動目標</div>
           </div>
           <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-amber-500 border border-slate-100">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -235,10 +235,20 @@
   }
 
   function renderTaskInterface() {
+    const isReaction = state.taskMode === 'reaction';
     return `
-      <div class="rounded-[40px] aspect-[3/4] relative overflow-hidden shadow-2xl bg-black border-4 border-slate-200">
-        <video id="cam" autoplay playsinline muted style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); z-index:1;"></video>
-        <canvas id="overlay" style="position:absolute; inset:0; width:100%; height:100%; transform:scaleX(-1); z-index:2; pointer-events:none;"></canvas>
+      <div class="rounded-[40px] aspect-[3/4] relative overflow-hidden shadow-2xl ${isReaction ? 'bg-slate-900' : 'bg-black'} border-4 border-slate-200" id="game-container">
+        ${isReaction ? `
+          <div id="reaction-area" class="absolute inset-0">
+            ${state.reaction.targets.map(t => `
+              <div data-act="hit-target" data-id="${t.id}" class="absolute w-20 h-20 bg-amber-500 rounded-full border-4 border-white shadow-[0_0_20px_rgba(245,158,11,0.6)] animate-pulse active:scale-75 transition-transform" 
+                   style="left: ${t.x * 80 + 10}%; top: ${t.y * 80 + 10}%;"></div>
+            `).join('')}
+          </div>
+        ` : `
+          <video id="cam" autoplay playsinline muted style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); z-index:1;"></video>
+          <canvas id="overlay" style="position:absolute; inset:0; width:100%; height:100%; transform:scaleX(-1); z-index:2; pointer-events:none;"></canvas>
+        `}
         <div class="absolute top-6 left-6 right-6 flex justify-between z-10 pointer-events-none">
           <div class="bg-white/90 backdrop-blur-md p-4 rounded-3xl shadow-xl min-w-[110px]">
             <div class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Live Monitor</div>
@@ -275,8 +285,8 @@
           <div class="h-px bg-slate-50"></div>
           <div class="grid grid-cols-2 gap-4 text-center">
             <div>
-              <div class="text-[10px] font-bold text-slate-400 uppercase">最佳表現</div>
-              <div class="text-xl font-black text-slate-800">${s.rom}${state.taskMode === 'arm' ? '°' : '%'}</div>
+              <div class="text-[10px] font-bold text-slate-400 uppercase">${state.taskMode === 'reaction' ? '反應時間' : '最佳表現'}</div>
+              <div class="text-xl font-black text-slate-800">${s.rom}${state.taskMode === 'arm' ? '°' : (state.taskMode === 'grip' ? '%' : ' 秒')}</div>
             </div>
             <div>
               <div class="text-[10px] font-bold text-slate-400 uppercase">完成次數</div>
@@ -332,9 +342,12 @@
     if (state.taskMode === 'arm') {
       if (valEl) valEl.innerText = state.arm.angle + '°';
       if (repsEl) repsEl.innerText = `${state.arm.reps}/${state.targetReps}`;
-    } else {
+    } else if (state.taskMode === 'grip') {
       if (valEl) valEl.innerText = state.grip.score + '%';
       if (repsEl) repsEl.innerText = `${state.grip.reps}/${state.targetReps}`;
+    } else if (state.taskMode === 'reaction') {
+      if (valEl) valEl.innerText = '計時中...';
+      if (repsEl) repsEl.innerText = `${state.reaction.score}/10`;
     }
   }
 
@@ -391,6 +404,10 @@
     }
   }
 
+  function spawnTarget() {
+    state.reaction.targets = [{ x: Math.random() * 0.8, y: Math.random() * 0.8, id: Date.now() }];
+  }
+
   function drawPose(ctx, pts) {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.fillStyle = '#2DD4BF';
@@ -427,18 +444,51 @@
         state.taskStep = 'action';
         state.arm = { angle: 0, reps: 0, status: 'down', max: 0 };
         state.grip = { score: 0, reps: 0, status: 'open', max: 0 };
-        render(); await startEngine();
+        state.reaction = { targets: [], score: 0, startTime: Date.now(), totalTime: 0 };
+        
+        if (state.taskMode === 'reaction') {
+          spawnTarget();
+          render();
+        } else {
+          render(); await startEngine();
+        }
+      } else if (act === 'hit-target') {
+        state.reaction.score++;
+        state.reaction.targets = [];
+        if (state.reaction.score >= 10) {
+          state.reaction.totalTime = ((Date.now() - state.reaction.startTime) / 1000).toFixed(2);
+          const completeBtn = document.querySelector('[data-act="complete-task"]');
+          if (completeBtn) completeBtn.click();
+        } else {
+          spawnTarget();
+          render();
+        }
       } else if (act === 'complete-task') {
-        const reps = state.taskMode === 'arm' ? state.arm.reps : state.grip.reps;
-        const maxVal = state.taskMode === 'arm' ? state.arm.max : state.grip.max;
+        let reps, maxVal;
+        if (state.taskMode === 'arm') { reps = state.arm.reps; maxVal = state.arm.max; }
+        else if (state.taskMode === 'grip') { reps = state.grip.reps; maxVal = state.grip.max; }
+        else { reps = state.reaction.score; maxVal = state.reaction.totalTime; }
+
         const earnedXp = reps * 100;
         await healscapeApi.uploadSession({ patientId: state.patientId, task: state.taskMode, rom: maxVal, reps: reps, date: new Date().toISOString().split('T')[0] });
         stopEngine(); state.lastSession = { xp: earnedXp, rom: maxVal, reps: reps }; state.taskStep = 'result'; render();
-      } else if (act === 'finish-result') { gainXp(state.lastSession.xp); state.taskStep = 'idle'; init(); }
+      } else if (act === 'finish-result') { 
+        gainXp(state.lastSession.xp); 
+        state.taskStep = 'idle'; 
+        // Just refresh instead of init
+        state.stats.nextLevelXp = state.stats.level * 500;
+        generateMathQuiz();
+        render();
+      }
+
       else if (act === 'cancel-task') { stopEngine(); state.taskStep = 'idle'; render(); }
       else if (act.startsWith('nav-')) { state.currentView = act.replace('nav-', ''); render(); }
       else if (act === 'math-ans') {
         const isCorrect = parseInt(t.dataset.val) === state.mathQuiz.answer;
+        // Disable math buttons to prevent rapid multiple clicks
+        const btns = document.querySelectorAll('[data-act="math-ans"]');
+        btns.forEach(b => b.removeAttribute('data-act'));
+        
         if (isCorrect) {
           state.mathQuiz.streak++;
           sessionStorage.setItem('mathStreak', state.mathQuiz.streak);
@@ -448,7 +498,7 @@
           sessionStorage.setItem('mathStreak', 0);
           toast("答錯了，連擊中斷");
         }
-        generateMathQuiz(); render();
+        setTimeout(() => { generateMathQuiz(); render(); }, 300);
       }
     });
   }
@@ -470,4 +520,5 @@
   }
 
   init();
+  attachEvents();
 })();
