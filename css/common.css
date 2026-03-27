@@ -1,0 +1,113 @@
+:root {
+  --primary-clinical: #0D9488;
+  --primary-clinical-light: #14B8A6;
+  --bg-hospital: #F8FAFC;
+  --text-main: #1E293B;
+  --text-muted: #64748B;
+  --border-color: #E2E8F0;
+  --metal-gray: #94A3B8;
+  --high-risk: #EF4444;
+  --medium-risk: #F59E0B;
+  --low-risk: #10B981;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #CBD5E1;
+  font-family: "Noto Sans TC", system-ui, -apple-system, sans-serif;
+  color: var(--text-main);
+}
+
+.phone {
+  width: 100%;
+  max-width: 430px;
+  min-height: 860px;
+  margin: 16px auto;
+  background: #FFFFFF;
+  border-radius: 40px;
+  overflow: hidden;
+  border: 8px solid var(--metal-gray);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.phone-header {
+  background: #F1F5F9;
+  color: var(--text-muted);
+  padding: 8px 24px;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.app-content {
+  flex: 1;
+  background-color: var(--bg-hospital);
+  overflow-y: auto;
+  position: relative;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+}
+
+.status-pill {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-pill.high { background: #FEE2E2; color: var(--high-risk); }
+.status-pill.medium { background: #FEF3C7; color: var(--medium-risk); }
+.status-pill.low { background: #D1FAE5; color: var(--low-risk); }
+
+/* Clinical Toast */
+#toastWrap {
+  position: absolute;
+  top: 60px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #FFFFFF;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid var(--primary-clinical);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: auto;
+}
+
+.toast.error { border-left-color: var(--high-risk); }
+
+@keyframes toastIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.clinical-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary-clinical);
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
