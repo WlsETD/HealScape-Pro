@@ -238,25 +238,24 @@
     const isReaction = state.taskMode === 'reaction';
     return `
       <div class="rounded-[40px] aspect-[3/4] relative overflow-hidden shadow-2xl ${isReaction ? 'bg-slate-900' : 'bg-black'} border-4 border-slate-200" id="game-container">
+        <video id="cam" autoplay playsinline muted style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); z-index:1;"></video>
+        <canvas id="overlay" style="position:absolute; inset:0; width:100%; height:100%; transform:scaleX(-1); z-index:2; pointer-events:none;"></canvas>
         ${isReaction ? `
-          <div id="reaction-area" class="absolute inset-0">
+          <div id="reaction-area" class="absolute inset-0 z-10">
             ${state.reaction.targets.map(t => `
               <div data-act="hit-target" data-id="${t.id}" class="absolute w-20 h-20 bg-amber-500 rounded-full border-4 border-white shadow-[0_0_20px_rgba(245,158,11,0.6)] animate-pulse active:scale-75 transition-transform" 
                    style="left: ${t.x * 80 + 10}%; top: ${t.y * 80 + 10}%;"></div>
             `).join('')}
           </div>
-        ` : `
-          <video id="cam" autoplay playsinline muted style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); z-index:1;"></video>
-          <canvas id="overlay" style="position:absolute; inset:0; width:100%; height:100%; transform:scaleX(-1); z-index:2; pointer-events:none;"></canvas>
-        `}
+        ` : ''}
         <div class="absolute top-6 left-6 right-6 flex justify-between z-10 pointer-events-none">
           <div class="bg-white/90 backdrop-blur-md p-4 rounded-3xl shadow-xl min-w-[110px]">
             <div class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Live Monitor</div>
-            <div id="stat-val" class="text-2xl font-black text-slate-800">0</div>
+            <div id="stat-val" class="text-2xl font-black text-slate-800">${isReaction ? '計時中...' : (state.taskMode === 'arm' ? state.arm.angle + '°' : state.grip.score + '%')}</div>
           </div>
           <div class="bg-white/90 backdrop-blur-md p-4 rounded-3xl shadow-xl text-right min-w-[110px]">
             <div class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Completed</div>
-            <div id="stat-reps" class="text-2xl font-black text-slate-800">0/${state.targetReps}</div>
+            <div id="stat-reps" class="text-2xl font-black text-slate-800">${isReaction ? state.reaction.score + '/10' : (state.taskMode === 'arm' ? state.arm.reps : state.grip.reps) + '/' + state.targetReps}</div>
           </div>
         </div>
         <div class="absolute bottom-8 left-6 right-6 flex gap-3 z-10">
@@ -400,7 +399,42 @@
       const lm = res.multiHandLandmarks[0];
       ctx.fillStyle = '#A855F7';
       lm.forEach(p => { ctx.beginPath(); ctx.arc(p.x * canvas.width, p.y * canvas.height, 4, 0, 7); ctx.fill(); });
-      processGripLogic(lm);
+      
+      if (state.taskMode === 'grip') {
+        processGripLogic(lm);
+      } else if (state.taskMode === 'reaction') {
+        processReactionLogic(lm);
+      }
+    }
+  }
+
+  function processReactionLogic(lm) {
+    if (!state.reaction.targets.length) return;
+    const target = state.reaction.targets[0];
+    
+    // Landmark 8 is index finger tip
+    const tip = lm[8];
+    // Mirror X because camera is mirrored in CSS
+    const hx = 1 - tip.x;
+    const hy = tip.y;
+    
+    // Target screen position (0-1 range)
+    const tx = (target.x * 80 + 10) / 100;
+    const ty = (target.y * 80 + 10) / 100;
+    
+    const dist = Math.hypot(hx - tx, hy - ty);
+    
+    if (dist < 0.12) { // Detection threshold
+      state.reaction.score++;
+      state.reaction.targets = [];
+      if (state.reaction.score >= 10) {
+        state.reaction.totalTime = ((Date.now() - state.reaction.startTime) / 1000).toFixed(2);
+        const completeBtn = document.querySelector('[data-act="complete-task"]');
+        if (completeBtn) completeBtn.click();
+      } else {
+        spawnTarget();
+        render();
+      }
     }
   }
 
@@ -448,10 +482,8 @@
         
         if (state.taskMode === 'reaction') {
           spawnTarget();
-          render();
-        } else {
-          render(); await startEngine();
         }
+        render(); await startEngine();
       } else if (act === 'hit-target') {
         state.reaction.score++;
         state.reaction.targets = [];
