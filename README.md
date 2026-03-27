@@ -9,7 +9,12 @@
      - Observation：記錄關節活動度 (ROM)、抓握力、血壓、體重等生理量測數據。
      - Practitioner：醫事人員資料。
      - CarePlan / ServiceRequest：復健訓練計畫與處方下達。
-   - Demo 入口：
+   - 入口：
+
+      https://wlsetd.github.io/HealScape-Pro/
+
+      無法開啟請直接下載整份檔案 開啟index.html
+
      - 登入頁面：index.html
      - 測試帳密：
        - 治療師端：帳號 doctor@test.com / 密碼 1234
